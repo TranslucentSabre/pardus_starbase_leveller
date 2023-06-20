@@ -20,7 +20,34 @@ document.querySelector('#main').addEventListener('load', function (e) {
                 }
             });
         });
-        innerObserver.observe(frameDoc, { subtree: true, attributes: true});
+        innerObserver.observe(baseForm, { subtree: true, attributes: true});
+    }
+
+    planetForm = frameDoc.querySelector("form[name=planet_trade]");
+    if (planetForm) {
+        //Only set up the observer if we are on the planet page
+        const innerObserver = new MutationObserver( (mutataionList, observer ) => {
+            chrome.storage.local.get(["food","water","base"]).then((values) => {
+                //Discover capacity
+                goodsStorage = {};
+                rows=planetForm.querySelectorAll('tr[id^="shiprow"]')
+                rows.forEach((row) => {
+                    id = row.id.replace("shiprow","");
+                    sell = row.querySelector("input");
+                    //Use the manually entered sell quantity if present
+                    if (sell && (sell.value != "")) { goodsStorage[id]=Number(sell.value); return; }
+                    ship = Number(row.children[2].textContent);
+                    //Exclude fuel from selling unless explicitly listed above
+                    if (ship != "0" && id != "16" ) { goodsStorage[id]=Number(ship) }
+                });
+                capacity = Number(planetForm.querySelector('td[colspan="3"]').textContent.replace("t",""))
+                values["capacity"] = Object.values(goodsStorage).reduce((acc, curr) => acc + curr, capacity);
+                console.log(values);
+                output = level(values);
+                console.log(output, values);
+            });
+        });
+        innerObserver.observe(planetForm, { subtree: true, attributes: true});
     }
 })
 
