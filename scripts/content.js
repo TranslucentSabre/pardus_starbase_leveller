@@ -23,3 +23,55 @@ document.querySelector('#main').addEventListener('load', function (e) {
         innerObserver.observe(frameDoc, { subtree: true, attributes: true});
     }
 })
+
+function level (input) {
+    output={};
+    output.food=0;
+    output.water=0;
+
+    if( input.food != 0 && input.water != 0 && input.capacity != 0){
+        if (water_deficit(input.food,input.water)) {
+            output.food=get_food(input.food,input.water,input.capacity);
+            while (!Number.isInteger(output.food)) {
+                input.capacity-=1;
+                output.food=get_food(input.food,input.water,input.capacity);
+            }
+            output.water=input.capacity-output.food;
+        } else {
+            output.water=get_water(input.food,input.water,input.capacity);
+            while (!Number.isInteger(output.water)) {
+                input.capacity=input.capacity-1;
+                output.water=get_water(input.food,input.water,input.capacity);
+            }
+            output.food=input.capacity-output.water;
+        }
+    }
+    return output
+}
+
+function div_edge_case(value) {
+    floor = Math.floor(value);
+    return ( value - floor > 0.001 ) ? value : floor;
+}
+
+function water_deficit (food, water) {
+    return ((food*(2/3)-water) > 0);
+}
+
+function get_food (food, water, capacity) {
+    first_order = food * (2/3) - water - capacity;
+    if ( first_order >= 0 ) {
+        return 0;
+    } else {
+        return div_edge_case(Math.abs((first_order*3)/5));
+    }
+}
+
+function get_water (food, water, capacity) {
+    first_order = water * (3/2) - food - capacity;
+    if ( first_order >= 0 ) {
+        return 0;
+    } else {
+        return div_edge_case(Math.abs((first_order*2)/5));
+    }
+}
