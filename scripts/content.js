@@ -3,14 +3,16 @@ document.querySelector('#main').addEventListener('load', function (e) {
     frameDoc = e.target.contentWindow.document.body;
     baseForm = frameDoc.querySelector("form[name=starbase_trade]");
     if (baseForm) {
+        //Need to go up one layer so that the right a tag is selected
+        base=frameDoc.querySelector("a").textContent;
         // Read from storage first so we only save when needed
-        chrome.storage.local.get(["food","water"]).then((values) => {
+        chrome.storage.local.get(["bases"]).then((values) => {
             var food = Number(baseForm.querySelector("#baserow1").children[2].textContent.replaceAll(",",""));
             var water = Number(baseForm.querySelector("#baserow3").children[2].textContent.replaceAll(",",""));
-            if ((food && water ) && ( food != values.food || water != values.water)) {
-                //Need to go up one layer so that the right a tag is selected
-                base=frameDoc.querySelector("a").textContent;
-                chrome.storage.local.set({"food":food, "water":water, "base":base}).then(() => {
+            if ((food && water ) && ( (!values.bases || !values.bases[base]) || (food != values.bases[base].food || water != values.bases[base].water))) {
+                saveObj={"base": base, "bases": {}}
+                saveObj.bases[base] = {"food": food, "water": water}
+                chrome.storage.local.set(saveObj).then(() => {
                    console.log("Saved - Food: "+food+", Water: "+water+", Base: "+base);
                 });
             }
@@ -25,7 +27,7 @@ document.querySelector('#main').addEventListener('load', function (e) {
 })
 
 function planet_calculation() {
-    chrome.storage.local.get(["food","water","base"]).then((values) => {
+    chrome.storage.local.get(["bases","base"]).then((values) => {
         //Discover capacity
         goodsStorage = {};
         rows=planetForm.querySelectorAll('tr[id^="shiprow"]')
@@ -46,10 +48,11 @@ function planet_calculation() {
         });
         // Calculate our buying capacity if we sell everything to the planet, start by reading our empty space
         capacity = Number(planetForm.querySelector('td[colspan="3"]').textContent.replace("t",""))
-        values["capacity"] = Object.values(goodsStorage).reduce((acc, curr) => acc + curr, capacity);
-        console.log(values);
-        output = level(values);
-        console.log(output, values);
+        input = {"food": values.bases[values.base].food, "water": values.bases[values.base].water}
+        input["capacity"] = Object.values(goodsStorage).reduce((acc, curr) => acc + curr, capacity);
+        console.log(input);
+        output = level(input);
+        console.log(output, input);
 
         myButton = planetForm.querySelector("#levelStarbase");
         if ( ! myButton) {
