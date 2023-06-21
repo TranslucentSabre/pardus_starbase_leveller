@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
     "name": "Pardus Starbase Leveller",
-    "version": "1.0",
-    "description": "Assist in buying food and water from planets to keep bases at the correct ratio of inputs.",
+    "version": "1.0.0",
+    "description": "A tool to purchase Starbase inputs from planets, maintaining a ratio of 3 food to 2 water at the base. For use with the MMO Pardus.",
     "icons": {
         "16": "images/icon-16.png",
         "32": "images/icon-32.png",
