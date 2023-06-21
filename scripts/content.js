@@ -10,10 +10,10 @@ document.querySelector('#main').addEventListener('load', function (e) {
             var food = Number(baseForm.querySelector("#baserow1").children[2].textContent.replaceAll(",",""));
             var water = Number(baseForm.querySelector("#baserow3").children[2].textContent.replaceAll(",",""));
             if ((food && water ) && ( (!values.bases || !values.bases[base]) || (food != values.bases[base].food || water != values.bases[base].water))) {
-                saveObj={"base": base, "bases": {}}
+                saveObj={"base": base, "bases": values.bases}
                 saveObj.bases[base] = {"food": food, "water": water}
                 chrome.storage.local.set(saveObj).then(() => {
-                   console.log("Saved - Food: "+food+", Water: "+water+", Base: "+base);
+                    console.log("Saved - Food: "+food+", Water: "+water+", Base: "+base);
                 });
             }
         });
@@ -57,14 +57,28 @@ function planet_calculation() {
         myButton = planetForm.querySelector("#levelStarbase");
         if ( ! myButton) {
             //Add our new button if not already present
-            newButton=document.createElement("input");
-            newButton.setAttribute("type","submit");
-            newButton.setAttribute("id","levelStarbase");
-            newButton.setAttribute("value","Level '"+values.base+"'");
-            newButton.setAttribute("style","width: 175px; height: 35px;");
+            newButton = document.createElement("input");
+            newButton.type = "submit";
+            newButton.id = "levelStarbase";
+            newButton.value = "Level Starbase";
+            newButton.style = "width: 175px; height: 35px;";
+            //Add drop to select base to level
+            bases = document.createElement("select");
+            bases.id = "levelStarbases";
+            bases.onchange = selectBase;
+            Object.keys(values.bases).forEach( base => {
+                option = document.createElement("option");
+                option.value = base;
+                option.text = base;
+                bases.appendChild(option);
+            });
+            bases.value = values.base;
+            //Get the selectors necessary for insertion
             buttons = planetForm.querySelector("#quickButtons");
             preview = planetForm.querySelector("#preview_checkbox_line");
+            //Add the new elements
             buttons.insertBefore(newButton,preview);
+            buttons.insertBefore(bases,preview);
             buttons.insertBefore(document.createElement("br"),preview);
             buttons.insertBefore(document.createElement("br"),preview);
             buttons.insertBefore(document.createElement("br"),preview);
@@ -75,6 +89,13 @@ function planet_calculation() {
         Object.keys(goodsStorage).forEach( key => sellGoods.push('"'+key+'": '+goodsStorage[key]) );
         clickAction='resetForm(); quickSell({'+sellGoods.join(",")+'}); quickBuy({"1": '+output.food+', "3": '+output.water+'}); submitTradeForm(); return false';
         myButton.setAttribute("onclick",clickAction);
+    });
+}
+
+function selectBase() {
+    saveObj = {"base": planetForm.querySelector("#levelStarbases").value};
+    chrome.storage.local.set(saveObj).then(() => {
+        planet_calculation();
     });
 }
 
