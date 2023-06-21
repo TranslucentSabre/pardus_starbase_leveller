@@ -10,7 +10,7 @@ document.querySelector('#main').addEventListener('load', function (e) {
             var food = Number(baseForm.querySelector("#baserow1").children[2].textContent.replaceAll(",",""));
             var water = Number(baseForm.querySelector("#baserow3").children[2].textContent.replaceAll(",",""));
             if ((food && water ) && ( (!values.bases || !values.bases[base]) || (food != values.bases[base].food || water != values.bases[base].water))) {
-                saveObj={"base": base, "bases": values.bases}
+                saveObj={"base": base, "bases": values.bases ? values.bases : {}}
                 saveObj.bases[base] = {"food": food, "water": water}
                 chrome.storage.local.set(saveObj).then(() => {
                     console.log("Saved - Food: "+food+", Water: "+water+", Base: "+base);
