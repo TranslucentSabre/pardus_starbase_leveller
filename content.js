@@ -1,36 +1,31 @@
-// Add a callback to calculate and save our data when the page loads
-document.querySelector('#main').addEventListener('load', function (e) {
-    frameDoc = e.target.contentWindow.document.body;
-    baseForm = frameDoc.querySelector("form[name=starbase_trade]");
-    if (baseForm) {
-        //Need to go up one layer so that the right a tag is selected
-        base=frameDoc.querySelector("a").textContent;
-        // Read from storage first so we only save when needed
-        chrome.storage.local.get(["bases"]).then((values) => {
-            var food = Number(baseForm.querySelector("#baserow1").children[2].textContent.replaceAll(",",""));
-            var water = Number(baseForm.querySelector("#baserow3").children[2].textContent.replaceAll(",",""));
-            if ((food && water ) && ( (!values.bases || !values.bases[base]) || (food != values.bases[base].food || water != values.bases[base].water))) {
-                saveObj={"base": base, "bases": values.bases ? values.bases : {}}
-                saveObj.bases[base] = {"food": food, "water": water}
-                chrome.storage.local.set(saveObj).then(() => {
-                    console.log("Saved - Food: "+food+", Water: "+water+", Base: "+base);
-                });
-            }
-        });
-    }
+tradeForm = document.forms.starbase_trade || document.forms.planet_trade;
+if (tradeForm == document.forms.starbase_trade) {
+    //Need to go up one layer so that the right a tag is selected
+    base=document.querySelector("a").textContent;
+    // Read from storage first so we only save when needed
+    chrome.storage.local.get(["bases"]).then((values) => {
+        var food = Number(tradeForm.querySelector("#baserow1").children[2].textContent.replaceAll(",",""));
+        var water = Number(tradeForm.querySelector("#baserow3").children[2].textContent.replaceAll(",",""));
+        if ((food && water ) && ( (!values.bases || !values.bases[base]) || (food != values.bases[base].food || water != values.bases[base].water))) {
+            saveObj={"base": base, "bases": values.bases ? values.bases : {}}
+            saveObj.bases[base] = {"food": food, "water": water}
+            chrome.storage.local.set(saveObj).then(() => {
+                console.log("Saved - Food: "+food+", Water: "+water+", Base: "+base);
+            });
+        }
+    });
+}
 
-    planetForm = frameDoc.querySelector("form[name=planet_trade]");
-    if (planetForm) {
-        // This calculation is functionalized so the we can recurse if a sell input is manually operated
-        planet_calculation();
-    }
-})
+if (tradeForm == document.forms.planet_trade) {
+    // This calculation is functionalized so the we can recurse if a sell input is manually operated or the base to level is changed
+    planet_calculation();
+}
 
 function planet_calculation() {
     chrome.storage.local.get(["bases","base"]).then((values) => {
         //Discover capacity
         goodsStorage = {};
-        rows=planetForm.querySelectorAll('tr[id^="shiprow"]')
+        rows=tradeForm.querySelectorAll('tr[id^="shiprow"]')
         rows.forEach((row) => {
             id = row.id.replace("shiprow","");
             sell = row.querySelector("#sell_"+id);
@@ -47,14 +42,14 @@ function planet_calculation() {
             if (ship != "0" && id != "16" ) { goodsStorage[id]=Number(ship) }
         });
         // Calculate our buying capacity if we sell everything to the planet, start by reading our empty space
-        capacity = Number(planetForm.querySelector('td[colspan="3"]').textContent.replace("t",""))
+        capacity = Number(tradeForm.querySelector('td[colspan="3"]').textContent.replace("t",""))
         input = {"food": values.bases[values.base].food, "water": values.bases[values.base].water}
         input["capacity"] = Object.values(goodsStorage).reduce((acc, curr) => acc + curr, capacity);
         console.log(input);
         output = level(input);
         console.log(output, input);
 
-        myButton = planetForm.querySelector("#levelStarbase");
+        myButton = tradeForm.querySelector("#levelStarbase");
         if ( ! myButton) {
             //Add our new button if not already present
             newButton = document.createElement("input");
@@ -74,8 +69,8 @@ function planet_calculation() {
             });
             bases.value = values.base;
             //Get the selectors necessary for insertion
-            buttons = planetForm.querySelector("#quickButtons");
-            preview = planetForm.querySelector("#preview_checkbox_line");
+            buttons = tradeForm.querySelector("#quickButtons");
+            preview = tradeForm.querySelector("#preview_checkbox_line");
             //Add the new elements
             buttons.insertBefore(newButton,preview);
             buttons.insertBefore(bases,preview);
@@ -93,7 +88,7 @@ function planet_calculation() {
 }
 
 function selectBase() {
-    saveObj = {"base": planetForm.querySelector("#levelStarbases").value};
+    saveObj = {"base": tradeForm.querySelector("#levelStarbases").value};
     chrome.storage.local.set(saveObj).then(() => {
         planet_calculation();
     });
