@@ -10,7 +10,7 @@ if (tradeForm == document.forms.starbase_trade) {
             saveObj={"base": base, "bases": values.bases ? values.bases : {}}
             saveObj.bases[base] = {"food": food, "water": water}
             chrome.storage.local.set(saveObj).then(() => {
-                console.log("Saved - Food: "+food+", Water: "+water+", Base: "+base);
+                //console.log("Saved - Food: "+food+", Water: "+water+", Base: "+base);
             });
         }
     });
@@ -38,16 +38,19 @@ function planet_calculation() {
                 if (sell.value != "") { goodsStorage[id]=Number(sell.value); return; }
             }
             ship = Number(row.children[2].textContent);
-            //Exclude fuel from selling unless explicitly sold above
-            if (ship != "0" && id != "16" ) { goodsStorage[id]=Number(ship) }
+            //Do a special check for fuel
+            if ( id == "16" ) ship = checkForFuelSelling(ship);
+            if (ship != "0" ) { 
+                goodsStorage[id]=Number(ship)
+            }
         });
         // Calculate our buying capacity if we sell everything to the planet, start by reading our empty space
         capacity = Number(tradeForm.querySelector('td[colspan="3"]').textContent.replace("t",""))
         input = {"food": values.bases[values.base].food, "water": values.bases[values.base].water}
         input["capacity"] = Object.values(goodsStorage).reduce((acc, curr) => acc + curr, capacity);
-        console.log(input);
+        //console.log(input);
         output = level(input);
-        console.log(output, input);
+        //console.log(output, input);
 
         myButton = tradeForm.querySelector("#levelStarbase");
         if ( ! myButton) {
@@ -85,6 +88,21 @@ function planet_calculation() {
         clickAction='resetForm(); quickSell({'+sellGoods.join(",")+'}); quickBuy({"1": '+output.food+', "3": '+output.water+'}); submitTradeForm(); return false';
         myButton.setAttribute("onclick",clickAction);
     });
+}
+
+function checkForFuelSelling(ship) {
+    // Cooperate with Bookkeeper's fuel space field
+    fuelInput = tradeForm.querySelector("#bookkeeper-fuel");
+    fuelCb = tradeForm.querySelector("#bookkeeper-fuel-cb");
+    if( fuelInput && fuelCb ) {
+        if ( fuelInput.value != "" && fuelCb.checked ) {
+            fsell = ship - Number(fuelInput.value);
+            if ( fsell > 0 ) {
+                return fsell;
+            }
+        }
+    }
+    return 0;
 }
 
 function selectBase() {
