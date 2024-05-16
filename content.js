@@ -22,7 +22,10 @@ if (tradeForm == document.forms.planet_trade) {
 }
 
 function planet_calculation() {
-    chrome.storage.local.get(["bases","base"]).then((values) => {
+    chrome.storage.local.get(["bases","base","direction"]).then((values) => {
+        if (!values.hasOwnProperty("direction")) {
+            values.direction = true;
+        }
         //Discover capacity
         goodsStorage = {};
         rows=tradeForm.querySelectorAll('tr[id^="shiprow"]')
@@ -49,7 +52,11 @@ function planet_calculation() {
         input = {"food": values.bases[values.base].food, "water": values.bases[values.base].water}
         input["capacity"] = Object.values(goodsStorage).reduce((acc, curr) => acc + curr, capacity);
         //console.log(input);
-        output = level(input);
+        if ( values.direction ) {
+            output = level_max(input);
+        } else {
+            output = level_min(input);
+        }
         //console.log(output, input);
 
         myButton = tradeForm.querySelector("#levelStarbase");
@@ -58,8 +65,14 @@ function planet_calculation() {
             newButton = document.createElement("input");
             newButton.type = "submit";
             newButton.id = "levelStarbase";
-            newButton.value = "Level Starbase";
+            // Value not set here, so that we can update it later
             newButton.style = "width: 175px; height: 35px;";
+            //Add a checkbox to
+            direction = document.createElement("input");
+            direction.type = "checkbox";
+            direction.id = "levelDirection";
+            direction.onchange = setDirection;
+            direction.checked = ! values.direction;
             //Add drop to select base to level
             bases = document.createElement("select");
             bases.id = "levelStarbases";
@@ -75,6 +88,7 @@ function planet_calculation() {
             buttons = tradeForm.querySelector("#quickButtons");
             preview = tradeForm.querySelector("#preview_checkbox_line");
             //Add the new elements
+            buttons.insertBefore(direction,preview);
             buttons.insertBefore(newButton,preview);
             buttons.insertBefore(bases,preview);
             buttons.insertBefore(document.createElement("br"),preview);
@@ -87,6 +101,10 @@ function planet_calculation() {
         Object.keys(goodsStorage).forEach( key => sellGoods.push('"'+key+'": '+goodsStorage[key]) );
         clickAction='resetForm(); quickSell({'+sellGoods.join(",")+'}); quickBuy({"1": '+output.food+', "3": '+output.water+'}); submitTradeForm(); return false';
         myButton.setAttribute("onclick",clickAction);
+        myButton.value = "Level Starbase";
+        if (! values.direction) {
+            myButton.value = "Level Starbase ( Min )"
+        }
     });
 }
 
@@ -112,7 +130,44 @@ function selectBase() {
     });
 }
 
-function level (input) {
+function setDirection() {
+    saveObj = {"direction": (! tradeForm.querySelector("#levelDirection").checked)};
+    chrome.storage.local.set(saveObj).then(() => {
+        planet_calculation();
+    });
+}
+
+function level_min(input) {
+    output={};
+    output.food=0;
+    output.water=0;
+
+    waterNeed = get_water_needed(input.food, input.water);
+    if ( waterNeed > 0 ) {
+        setVal = Math.min(waterNeed,capacity);
+        foodNeed = 0;
+        while (!Number.isInteger(div_edge_case(setVal))) {
+            foodNeed += 1;
+            setVal = get_water_needed(input.food + foodNeed, input.water)
+        }
+        output.food = foodNeed;
+        output.water = setVal;
+    } else if ( waterNeed < 0 ) {
+        setVal = Math.min(get_food_needed(input.food, input.water), capacity);
+        waterNeed = 0;
+        while (!Number.isInteger(div_edge_case(setVal))) {
+            waterNeed += 1;
+            setVal = get_food_needed(input.food, input.water + waterNeed)
+        }
+        output.food = setVal;
+        output.water = waterNeed;
+    }
+    // Intentionally leave out the == 0 case, we want to return 0, 0 in this case
+
+    return output;
+}
+
+function level_max (input) {
     output={};
     output.food=0;
     output.water=0;
@@ -142,12 +197,20 @@ function div_edge_case(value) {
     return ( value - floor > 0.001 ) ? value : floor;
 }
 
+function get_water_needed (food, water) {
+    return (food*(2/3)-water);
+}
+
+function get_food_needed (food, water) {
+    return (water*(3/2)-food);
+}
+
 function water_deficit (food, water) {
-    return ((food*(2/3)-water) > 0);
+    return (get_water_needed(food,water) > 0);
 }
 
 function get_food (food, water, capacity) {
-    first_order = food * (2/3) - water - capacity;
+    first_order = get_water_needed(food, water) - capacity;
     if ( first_order >= 0 ) {
         return 0;
     } else {
@@ -156,7 +219,7 @@ function get_food (food, water, capacity) {
 }
 
 function get_water (food, water, capacity) {
-    first_order = water * (3/2) - food - capacity;
+    first_order = get_food_needed(food, water) - capacity;
     if ( first_order >= 0 ) {
         return 0;
     } else {
