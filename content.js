@@ -42,7 +42,7 @@ function planet_calculation() {
             }
             ship = Number(row.children[2].textContent);
             //Do a special check for fuel
-            if ( id == "16" ) ship = checkForFuelSelling(ship);
+            if ( id == "16" ) ship = checkForFuelSelling(ship, values.direction);
             if (ship != "0" ) { 
                 goodsStorage[id]=Number(ship)
             }
@@ -67,6 +67,8 @@ function planet_calculation() {
             newButton.id = "levelStarbase";
             // Value not set here, so that we can update it later
             newButton.style = "width: 175px; height: 35px;";
+            label = document.createElement("label");
+            label.innerText = "Minimal Leveling: ";
             //Add a checkbox to
             direction = document.createElement("input");
             direction.type = "checkbox";
@@ -88,7 +90,9 @@ function planet_calculation() {
             buttons = tradeForm.querySelector("#quickButtons");
             preview = tradeForm.querySelector("#preview_checkbox_line");
             //Add the new elements
+            buttons.insertBefore(label,preview);
             buttons.insertBefore(direction,preview);
+            buttons.insertBefore(document.createElement("br"),preview);
             buttons.insertBefore(newButton,preview);
             buttons.insertBefore(bases,preview);
             buttons.insertBefore(document.createElement("br"),preview);
@@ -108,11 +112,11 @@ function planet_calculation() {
     });
 }
 
-function checkForFuelSelling(ship) {
+function checkForFuelSelling(ship, max_level) {
     // Cooperate with Bookkeeper's fuel space field
     fuelInput = tradeForm.querySelector("#bookkeeper-fuel");
     fuelCb = tradeForm.querySelector("#bookkeeper-fuel-cb");
-    if( fuelInput && fuelCb ) {
+    if( fuelInput && fuelCb && max_level ) {
         if ( fuelInput.value != "" && fuelCb.checked ) {
             fsell = ship - Number(fuelInput.value);
             if ( fsell > 0 ) {
