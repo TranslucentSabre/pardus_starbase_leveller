@@ -148,7 +148,7 @@ function level_min(input) {
 
     waterNeed = get_water_needed(input.food, input.water);
     if ( waterNeed > 0 ) {
-        setVal = Math.min(waterNeed,capacity);
+        setVal = Math.min(waterNeed,input.capacity);
         foodNeed = 0;
         while (!Number.isInteger(div_edge_case(setVal))) {
             foodNeed += 1;
@@ -157,7 +157,7 @@ function level_min(input) {
         output.food = foodNeed;
         output.water = setVal;
     } else if ( waterNeed < 0 ) {
-        setVal = Math.min(get_food_needed(input.food, input.water), capacity);
+        setVal = Math.min(get_food_needed(input.food, input.water), input.capacity);
         waterNeed = 0;
         while (!Number.isInteger(div_edge_case(setVal))) {
             waterNeed += 1;
